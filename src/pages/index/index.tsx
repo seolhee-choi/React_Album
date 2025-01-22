@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { CardDTO } from "./types/card"
-import { useRecoilValue } from "recoil"
+import { useRecoilValueLoadable } from "recoil"
 import { imageData } from "@/recoil/selectors/imageSelector"
 import styles from "@pages/index/styles/index.module.scss"
 import CommonHeader from "@components/common/header/CommonHeader"
@@ -8,15 +8,25 @@ import CommonSearchBar from "@components/common/searchBar/CommonSearchBar"
 import CommonNav from "@components/common/navigation/CommonNav"
 import CommonFooter from "@components/common/footer/CommonFooter"
 import Card from "@pages/index/components/Card"
+import DetailDialog from "@/components/common/dialog/DetailDialog"
+import Loading from "./components/Loading"
 
 function index() {
-    const imgSelector = useRecoilValue(imageData)
-    const [imgData, setImgData] = useState<CardDTO[]>([])
-
-    
-    const CARD_LIST = imgSelector.data.results.map((card: CardDTO) => {
-        return <Card data={card} key={card.id} />
-    })
+    const imgSelector = useRecoilValueLoadable(imageData)
+    const [imgData, setImgData] = useState<CardDTO>()
+    const [open, setOpen] = useState<boolean>(false) //이미지 상세 다이얼로그 발생(관리) State
+     
+    const CARD_LIST = useMemo(() => {
+        //imgSelector.state = hasValue or loading
+        if(imgSelector.state === "hasValue") {
+            const result = imgSelector.contents.results.map((card: CardDTO) => {
+                return <Card data={card} key={card.id} handleDialog={setOpen} handleSetData={setImgData} />
+            })
+            return result
+        } else {
+            return <Loading />
+        }
+    }, [imgSelector])
 
 
     return (
@@ -41,6 +51,7 @@ function index() {
             </div>
             {/* 공통 푸터 UI 부분 */}
             <CommonFooter />
+            {open && <DetailDialog data={imgData} handleDialog={setOpen}/>}
         </div>
     )
 }
