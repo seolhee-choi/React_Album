@@ -1,10 +1,16 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CardDTO } from "@/pages/index/types/card"
 import styles from "./DetailDialog.module.scss"
 import toast, { toastConfig } from 'react-simple-toasts'
 import 'react-simple-toasts/dist/theme/dark.css'
+// import 'react-simple-toasts/dist/component/toast-container.d.ts'
 
-toastConfig ({ theme: 'dark' })
+toastConfig ({ 
+    theme: 'dark'
+    // position: 'bottom-center', 
+    // duration: 3000
+    // className: styles.toastContainer,
+})
 
 interface Props {
     data: CardDTO
@@ -13,7 +19,8 @@ interface Props {
 
 function DetailDialog({ data, handleDialog }: Props) {
   const [bookmark, setBookmark] = useState(false)
-  
+  const getLocalStorage = JSON.parse(localStorage.getItem("bookmark"))
+
   //다이얼로그 끄기
   const closeDialog = () => {
     handleDialog(false)
@@ -23,18 +30,48 @@ function DetailDialog({ data, handleDialog }: Props) {
   const addBookmark = (selected: CardDTO) => {
     setBookmark(true)
 
-    const getLocalStorage = JSON.parse(localStorage.getItem("bookmark"))
+    
     //1.로컬스토리지에 bookmark이라는 데이터가 없을 경우
-    if(!getLocalStorage || getLocalStorage === null) {
+    if (!getLocalStorage || getLocalStorage === null) {
         localStorage.setItem("bookmark", JSON.stringify([selected]))
         toast("해당 이미지를 북마크에 저장하였습니다. 🤩")
     } else {
-    //2.해당 이미지가 이미 로컬 스토리지 bookmark라는 데이터에 저장되어 있을 경우
-    if(getLocalStorage.findIndex((item: CardDTO) => item.id === selected.id) > -1) {
-        toast("해당 이미지는 이미 북마크에 추가된 상태입니다. ❌")
-    }
+        //2.해당 이미지가 이미 로컬 스토리지 bookmark라는 데이터에 저장되어 있을 경우
+        if(getLocalStorage.findIndex((item: CardDTO) => item.id === selected.id) > -1) {
+            toast("해당 이미지는 이미 북마크에 추가된 상태입니다. ❌")
+        } else {
+        //3.해당 이미지가 로컬 스토리지 bookmark라는 데이터에 저장되어 있지 않을 경우 + bookmark라는 데이터에 이미 어떤 값이 담겨 있는 경우
+            const res = [...getLocalStorage]
+            res.push(selected)
+            localStorage.setItem("bookmark", JSON.stringify(res))
+
+            toast("해당 이미지를 북마크에 저장하였습니다. 🤩")
+        }
     }
   }
+
+  useEffect(() => {
+    if(getLocalStorage && getLocalStorage.findIndex((item:CardDTO) => item.id === data.id) > -1) {
+        setBookmark(true)
+    } else if(!getLocalStorage) {
+        return
+    }  
+    
+    // ESC키를 눌렀을 때, 다이얼로그 창 닫기
+    const escKeyDownCloseDialog = (event: any) => {
+        console.log("함수 호출")
+        if(event.key === 'Escape' ) {
+            closeDialog()
+        }
+    }
+
+    // 위에 만들어놓은 escKeyDownCloseDialog를 키다운 했을때, 이벤트 등록 및 해지
+    document.addEventListener("keydown", escKeyDownCloseDialog)
+    return () => document.removeEventListener(
+        "keydown",escKeyDownCloseDialog
+    )
+  }, [])
+
   return (
     <div className={styles.container}>
         <div className={styles.container__dialog}>
